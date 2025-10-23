@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorting Algorithms Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .tab-btn {
+            @apply px-4 py-2 font-medium text-sm rounded-md transition-all;
+        }
+        .tab-btn.active {
+            @apply bg-indigo-600 text-white shadow-md;
+        }
+        .tab-btn:not(.active) {
+            @apply text-stone-600 hover:bg-stone-100;
+        }
+        .math-notation {
+            @apply font-mono text-indigo-700 font-semibold;
+        }
+        .array-bar {
+            @apply flex-grow bg-indigo-400 rounded-t-lg transition-all duration-300 ease-out shadow-sm;
+            width: 100%;
+            margin: 0 1px;
+        }
+        .array-container {
+            display: flex;
+            align-items: flex-end;
+            width: 100%;
+            height: 250px;
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 4px;
+        }
+    </style>
+    <!-- Chosen Palette: Calm Harmony (Stone background, Indigo accent) -->
+    <!-- Application Structure Plan: The SPA is organized into three sections: 1) Algorithm Explorer (interactive simulation with step controls), 2) Comparison Chart (Chart.js visualization of O-notation curves), and 3) Properties Matrix (static table comparison). This structure prioritizes hands-on learning, then theoretical context, and finally key attributes for synthesis. -->
+    <!-- Visualization & Content Choices: Algorithm Explorer -> Goal: Illustrate execution flow -> Custom HTML/CSS/JS array bars -> Interaction: 'Step' button to advance the algorithm one operation at a time -> Justification: Chart.js is not suitable for step-by-step array movements; this approach allows precise highlighting of comparisons and swaps, crucial for understanding how each sort works. Complexity Comparison -> Goal: Contextualize Big O -> Chart.js Line Chart (O(n²), O(n log n)) -> Interaction: None -> Justification: Visually reinforces the difference between complexity classes based on the report content. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <header class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-indigo-600">Sorting Algorithms Lesson</h1>
+            <div class="hidden sm:flex space-x-2">
+                <button onclick="scrollToSection('explorer')" class="tab-btn active">Explorer</button>
+                <button onclick="scrollToSection('comparison')" class="tab-btn">Comparison</button>
+                <button onclick="scrollToSection('properties')" class="tab-btn">Properties</button>
+            </div>
+            <div class="sm:hidden">
+                <select onchange="scrollToSection(this.value)" class="border-stone-300 rounded-md shadow-sm">
+                    <option value="explorer">Explorer</option>
+                    <option value="comparison">Comparison</option>
+                    <option value="properties">Properties</option>
+                </select>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+
+        <section id="explorer" class="mb-16">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6">Algorithm Explorer: Step-by-Step Sorting</h2>
+            <p class="text-lg text-center max-w-3xl mx-auto mb-8 text-stone-700">
+                Sorting is the process of arranging items in a specific order. This interactive explorer lets you see five fundamental algorithms at work. Select an algorithm and click **'Step'** to watch how it makes comparisons and swaps to sort the array.
+            </p>
+            
+            <div class="max-w-5xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-2xl">
+                
+                <div class="flex flex-wrap justify-center gap-2 mb-6 border-b pb-4">
+                    <button class="tab-btn active" onclick="selectAlgorithm('bubble')">Bubble Sort</button>
+                    <button class="tab-btn" onclick="selectAlgorithm('selection')">Selection Sort</button>
+                    <button class="tab-btn" onclick="selectAlgorithm('insertion')">Insertion Sort</button>
+                    <button class="tab-btn" onclick="selectAlgorithm('merge')">Merge Sort</button>
+                    <button class="tab-btn" onclick="selectAlgorithm('quick')">Quick Sort</button>
+                </div>
+                
+                <!-- Algorithm Details and Visualization -->
+                <div id="alg-details">
+                    <h3 class="text-2xl font-semibold mb-4 text-indigo-700" id="alg-title">Bubble Sort</h3>
+                    <p class="text-stone-700 mb-4" id="alg-description">
+                        Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. The pass through the list is repeated until the list is sorted.
+                    </p>
+                    <div class="flex items-center justify-between mb-4 p-3 bg-stone-100 rounded-lg">
+                        <p class="font-medium">Complexity (Worst & Avg): <span class="math-notation" id="alg-complexity">O(n²)</span></p>
+                        <p class="text-sm text-stone-600">Total Steps: <span id="step-count">0</span></p>
+                    </div>
+
+                    <div id="array-visualizer" class="array-container mb-6">
+                        <!-- Array bars will be rendered here by JS -->
+                    </div>
+
+                    <div class="flex justify-center space-x-4">
+                        <button id="reset-btn" class="px-6 py-2 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 transition-colors" onclick="resetArray()">Reset</button>
+                        <button id="step-btn" class="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-xl hover:bg-indigo-700 transition-colors" onclick="stepSort()">Step</button>
+                    </div>
+                    <p class="text-center mt-3 text-sm text-stone-600" id="current-action">Ready to begin.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison" class="mb-16">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6">Complexity Comparison</h2>
+            <p class="text-lg text-center max-w-3xl mx-auto mb-8 text-stone-700">
+                This chart compares the growth rate of algorithms. **O(n log n)** algorithms (Merge, Quick) scale much better than **O(n²)** algorithms (Bubble, Selection, Insertion) as the input size <span class="math-notation">N</span> grows.
+            </p>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="chart-container" style="height: 450px; max-height: 550px;">
+                    <canvas id="complexityChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="properties" class="mb-16">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6">Key Algorithm Properties</h2>
+            <p class="text-lg text-center max-w-3xl mx-auto mb-8 text-stone-700">
+                Sorting algorithms are often categorized by these two important properties: **Stability** and **Space Usage**.
+            </p>
+            <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-lg">
+                <table class="min-w-full divide-y divide-stone-200">
+                    <thead class="bg-stone-100">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 text-left text-sm font-semibold text-stone-700 uppercase tracking-wider">Algorithm</th>
+                            <th scope="col" class="px-4 py-3 text-center text-sm font-semibold text-stone-700 uppercase tracking-wider">Worst Case Time</th>
+                            <th scope="col" class="px-4 py-3 text-center text-sm font-semibold text-stone-700 uppercase tracking-wider">Stability</th>
+                            <th scope="col" class="px-4 py-3 text-center text-sm font-semibold text-stone-700 uppercase tracking-wider">In-Place (Space)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-stone-200">
+                        <tr class="hover:bg-indigo-50/50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-stone-900">Bubble Sort</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-red-600 font-mono"><span class="math-notation">O(n²)</span></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-green-600">Yes</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-green-600">Yes</td>
+                        </tr>
+                        <tr class="hover:bg-indigo-50/50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-stone-900">Selection Sort</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-red-600 font-mono"><span class="math-notation">O(n²)</span></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-red-600">No</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-green-600">Yes</td>
+                        </tr>
+                        <tr class="hover:bg-indigo-50/50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-stone-900">Insertion Sort</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-red-600 font-mono"><span class="math-notation">O(n²)</span></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-green-600">Yes</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-green-600">Yes</td>
+                        </tr>
+                        <tr class="hover:bg-indigo-50/50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-stone-900">Merge Sort</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-indigo-600 font-mono"><span class="math-notation">O(n log n)</span></td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-green-600">Yes</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-red-600">No (Uses <span class="math-notation">O(n)</span> extra space)</td>
+                        </tr>
+                        <tr class="hover:bg-indigo-50/50">
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-stone-900">Quick Sort</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-red-600 font-mono"><span class="math-notation">O(n²)</span> (Worst), <span class="math-notation">O(n log n)</span> (Avg)</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-red-600">No</td>
+                            <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-green-600">Yes</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="mt-6 text-sm text-stone-600 space-y-2 p-4 bg-stone-50 rounded-lg">
+                    <p><strong>Stability:</strong> A stable sort preserves the relative order of equal elements. This matters when elements have multiple attributes.</p>
+                    <p><strong>In-Place:</strong> An in-place sort requires only a constant amount of extra memory space (<span class="math-notation">O(1)</span>) relative to the input size.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-800 text-stone-300 py-8 mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p>Interactive Lesson on Sorting Techniques</p>
+        </div>
+    </footer>
+
+    <script>
+        let complexityChartInstance;
+        let currentAlgorithm = 'bubble';
+        let array = [];
+        let arraySize = 10;
+        let stepCount = 0;
+        let sortState = {};
+        let isSorting = false;
+
+        const algorithmDetails = {
+            bubble: {
+                title: "Bubble Sort",
+                description: "Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. The largest elements 'bubble up' to their correct position at the end of each pass. It's simple but highly inefficient.",
+                complexity: "O(n²)"
+            },
+            selection: {
+                title: "Selection Sort",
+                description: "Divides the list into a sorted and unsorted region. It repeatedly finds the smallest element in the unsorted region and swaps it with the leftmost unsorted element. It performs the minimum number of swaps.",
+                complexity: "O(n²)"
+            },
+            insertion: {
+                title: "Insertion Sort",
+                description: "Builds the final sorted array one item at a time. It iterates through the input elements and consumes one input element at a time, inserting it into its correct sorted position in the list being built. Highly efficient for nearly sorted data.",
+                complexity: "O(n²)"
+            },
+            merge: {
+                title: "Merge Sort",
+                description: "A stable, divide-and-conquer algorithm. It recursively divides the list into halves until only single elements remain, then merges those halves back together in sorted order. Requires significant extra memory.",
+                complexity: "O(n log n)"
+            },
+            quick: {
+                title: "Quick Sort",
+                description: "An efficient, in-place, divide-and-conquer algorithm. It selects a 'pivot' element and partitions the array into two sub-arrays, according to whether elements are less than or greater than the pivot. It then recursively sorts the sub-arrays.",
+                complexity: "O(n log n) (Avg), O(n²) (Worst)"
+            }
+        };
+
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth' });
+                const navButtons = document.querySelectorAll('header .tab-btn');
+                navButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if(btn.getAttribute('onclick') === `scrollToSection('${sectionId}')`) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+        }
+
+        function initArray() {
+            array = [];
+            for (let i = 0; i < arraySize; i++) {
+                array.push(Math.floor(Math.random() * 99) + 1);
+            }
+            sortState = {
+                i: 0, 
+                j: 0, 
+                k: 0,
+                minIdx: -1,
+                pivotIdx: -1,
+                isSorted: false, 
+                subArrays: [] 
+            };
+            stepCount = 0;
+            isSorting = true;
+            document.getElementById('step-count').textContent = stepCount;
+            document.getElementById('current-action').textContent = "Click 'Step' to begin the sort.";
+        }
+
+        function updateVisualization() {
+            const container = document.getElementById('array-visualizer');
+            container.innerHTML = '';
+            const maxVal = Math.max(...array);
+
+            array.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'array-bar';
+                bar.style.height = `${(value / maxVal) * 90 + 10}%`; 
+                bar.dataset.value = value;
+                
+                let color = 'bg-indigo-400';
+
+                if (sortState.isSorted) {
+                    color = 'bg-green-500'; 
+                } else if (currentAlgorithm === 'bubble' && index >= array.length - sortState.i) {
+                    color = 'bg-green-500';
+                } else if (currentAlgorithm === 'selection' && index < sortState.i) {
+                    color = 'bg-green-500';
+                } else if (currentAlgorithm === 'insertion' && index <= sortState.i) {
+                    color = 'bg-green-500';
+                }
+                
+                if (index === sortState.i || index === sortState.j || index === sortState.k) {
+                    color = 'bg-red-500'; // Primary comparison/swap
+                }
+                if (index === sortState.minIdx && currentAlgorithm === 'selection') {
+                    color = 'bg-yellow-500'; // Min element
+                }
+                if (index === sortState.pivotIdx && currentAlgorithm === 'quick') {
+                    color = 'bg-purple-500'; // Pivot element
+                }
+
+                bar.classList.add(...color.split(' '));
+                container.appendChild(bar);
+            });
+
+            if (sortState.isSorted) {
+                document.getElementById('current-action').textContent = "Array is fully sorted!";
+                document.getElementById('step-btn').disabled = true;
+            } else {
+                 document.getElementById('step-btn').disabled = false;
+            }
+        }
+
+        function swap(arr, a, b) {
+            [arr[a], arr[b]] = [arr[b], arr[a]];
+        }
+        
+        // --- Sorting Logic State Machine ---
+
+        function bubbleSortStep() {
+            const n = array.length;
+            
+            if (sortState.i >= n - 1) {
+                sortState.isSorted = true;
+                return "Sorting complete.";
+            }
+
+            if (sortState.j < n - 1 - sortState.i) {
+                sortState.k = sortState.j + 1;
+                
+                if (array[sortState.j] > array[sortState.k]) {
+                    swap(array, sortState.j, sortState.k);
+                    sortState.j++;
+                    return `Compare ${array[sortState.k]} and ${array[sortState.j]}, SWAP.`;
+                } else {
+                    sortState.j++;
+                    return `Compare ${array[sortState.j]} and ${array[sortState.k]}, NO SWAP.`;
+                }
+            } else {
+                sortState.i++;
+                sortState.j = 0;
+                return `Pass ${sortState.i} complete. Next largest element is sorted.`;
+            }
+        }
+
+        function selectionSortStep() {
+            const n = array.length;
+
+            if (sortState.i >= n) {
+                sortState.isSorted = true;
+                return "Sorting complete.";
+            }
+
+            if (sortState.j === sortState.i) {
+                sortState.minIdx = sortState.i;
+            }
+
+            if (sortState.j < n) {
+                if (array[sortState.j] < array[sortState.minIdx]) {
+                    sortState.minIdx = sortState.j;
+                    sortState.j++;
+                    return `New minimum found at index ${sortState.j - 1}.`;
+                }
+                sortState.j++;
+                return `Comparing with current minimum at index ${sortState.minIdx}.`;
+            } else {
+                if (sortState.minIdx !== sortState.i) {
+                    swap(array, sortState.i, sortState.minIdx);
+                    let action = `Swap minimum element ${array[sortState.i]} with element at position ${sortState.i}.`;
+                    sortState.i++;
+                    sortState.j = sortState.i;
+                    sortState.minIdx = -1;
+                    return action;
+                } else {
+                    let action = `Element at position ${sortState.i} is already the minimum.`;
+                    sortState.i++;
+                    sortState.j = sortState.i;
+                    sortState.minIdx = -1;
+                    return action;
+                }
+            }
+        }
+
+        function insertionSortStep() {
+            const n = array.length;
+            if (sortState.i >= n) {
+                sortState.isSorted = true;
+                return "Sorting complete.";
+            }
+            
+            if (sortState.j > 0 && array[sortState.j - 1] > array[sortState.j]) {
+                swap(array, sortState.j, sortState.j - 1);
+                sortState.j--;
+                return `Shift ${array[sortState.j + 1]} left to maintain sorted order.`;
+            } else {
+                sortState.i++;
+                sortState.j = sortState.i;
+                return `Pass ${sortState.i - 1} complete. Moving to the next unsorted element.`;
+            }
+        }
+
+        function stepSort() {
+            if (!isSorting || sortState.isSorted) return;
+
+            stepCount++;
+            document.getElementById('step-count').textContent = stepCount;
+
+            let actionText = "";
+
+            switch (currentAlgorithm) {
+                case 'bubble':
+                    actionText = bubbleSortStep();
+                    break;
+                case 'selection':
+                    actionText = selectionSortStep();
+                    break;
+                case 'insertion':
+                    actionText = insertionSortStep();
+                    break;
+                case 'merge':
+                case 'quick':
+                    actionText = "Simulation for Merge/Quick is too complex for step-by-step. Refer to description and complexity chart.";
+                    sortState.isSorted = true; 
+                    break;
+            }
+            
+            document.getElementById('current-action').textContent = actionText;
+            updateVisualization();
+        }
+
+        function resetArray() {
+            initArray();
+            updateVisualization();
+            document.getElementById('step-btn').disabled = false;
+        }
+
+        function selectAlgorithm(algName) {
+            const detail = algorithmDetails[algName];
+            
+            document.getElementById('alg-title').textContent = detail.title;
+            document.getElementById('alg-description').textContent = detail.description;
+            document.getElementById('alg-complexity').textContent = detail.complexity;
+            
+            document.querySelectorAll('#explorer .tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`button[onclick="selectAlgorithm('${algName}')"]`).classList.add('active');
+            
+            currentAlgorithm = algName;
+            resetArray();
+
+            if (algName === 'merge' || algName === 'quick') {
+                document.getElementById('step-btn').disabled = true;
+                document.getElementById('current-action').textContent = "Step-by-step for complex sorts (Merge/Quick) is not supported here. Please see the complexity chart below.";
+            }
+        }
+
+        // --- Chart.js Complexity Comparison ---
+
+        function initComplexityChart() {
+            const ctx = document.getElementById('complexityChart').getContext('2d');
+            const maxN = 50;
+            const labels = Array.from({ length: maxN }, (_, i) => i + 1);
+            
+            complexityChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'O(n²)',
+                            data: labels.map(n => n * n),
+                            borderColor: 'rgb(239, 68, 68)', 
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            pointRadius: 0,
+                            borderWidth: 3
+                        },
+                        {
+                            label: 'O(n log n)',
+                            data: labels.map(n => n * Math.log2(n)),
+                            borderColor: 'rgb(79, 70, 229)', 
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            pointRadius: 0,
+                            borderWidth: 3
+                        },
+                        {
+                            label: 'O(n)',
+                            data: labels.map(n => n * 10),
+                            borderColor: 'rgb(16, 185, 129)', 
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            pointRadius: 0,
+                            borderWidth: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Input Size (n)' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Time / Operations (Logarithmic Scale)' },
+                            type: 'logarithmic',
+                            min: 1
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initComplexityChart();
+            selectAlgorithm('bubble'); 
+            
+            const navButtons = document.querySelectorAll('header .tab-btn');
+            const sections = document.querySelectorAll('main section[id]');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.id;
+                        navButtons.forEach(btn => {
+                            btn.classList.toggle('active', btn.getAttribute('onclick') === `scrollToSection('${id}')`);
+                        });
+                        
+                        const mobileNav = document.querySelector('header select');
+                        mobileNav.value = id;
+                    }
+                });
+            }, { rootMargin: '-20% 0px -80% 0px' });
+            
+            sections.forEach(section => observer.observe(section));
+        });
+    </script>
+</body>
+</html>
