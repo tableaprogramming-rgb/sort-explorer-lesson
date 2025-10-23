@@ -53,10 +53,6 @@
             padding: 4px;
         }
     </style>
-    <!-- Chosen Palette: Calm Harmony (Stone background, Indigo accent) -->
-    <!-- Application Structure Plan: The SPA is organized into three sections: 1) Algorithm Explorer (interactive simulation with step controls), 2) Comparison Chart (Chart.js visualization of O-notation curves), and 3) Properties Matrix (static table comparison). This structure prioritizes hands-on learning, then theoretical context, and finally key attributes for synthesis. -->
-    <!-- Visualization & Content Choices: Algorithm Explorer -> Goal: Illustrate execution flow -> Custom HTML/CSS/JS array bars -> Interaction: 'Step' button to advance the algorithm one operation at a time -> Justification: Chart.js is not suitable for step-by-step array movements; this approach allows precise highlighting of comparisons and swaps, crucial for understanding how each sort works. Complexity Comparison -> Goal: Contextualize Big O -> Chart.js Line Chart (O(n²), O(n log n)) -> Interaction: None -> Justification: Visually reinforces the difference between complexity classes based on the report content. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 </head>
 <body class="bg-stone-50 text-stone-800">
 
@@ -83,7 +79,7 @@
         <section id="explorer" class="mb-16">
             <h2 class="text-3xl sm:text-4xl font-bold text-center mb-6">Algorithm Explorer: Step-by-Step Sorting</h2>
             <p class="text-lg text-center max-w-3xl mx-auto mb-8 text-stone-700">
-                Sorting is the process of arranging items in a specific order. This interactive explorer lets you see five fundamental algorithms at work. Select an algorithm and click **'Step'** to watch how it makes comparisons and swaps to sort the array.
+                Sorting is the process of arranging items in a specific order. This interactive explorer lets you see five fundamental algorithms at work. Select an algorithm and use **'Step'** or **'Play'** to watch how it makes comparisons and swaps.
             </p>
             
             <div class="max-w-5xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-2xl">
@@ -102,6 +98,14 @@
                     <p class="text-stone-700 mb-4" id="alg-description">
                         Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. The pass through the list is repeated until the list is sorted.
                     </p>
+                    
+                    <!-- UPDATED STEP-BY-STEP BLOCK -->
+                    <div class="mb-4">
+                        <h4 class="font-bold text-lg mb-2 text-stone-700">Step-by-Step Process:</h4>
+                        <pre id="alg-pseudocode" class="bg-indigo-50 p-4 rounded-lg text-sm overflow-x-auto text-indigo-900 font-sans shadow-inner"></pre>
+                    </div>
+                    <!-- END UPDATED STEP-BY-STEP BLOCK -->
+
                     <div class="flex items-center justify-between mb-4 p-3 bg-stone-100 rounded-lg">
                         <p class="font-medium">Complexity (Worst & Avg): <span class="math-notation" id="alg-complexity">O(n²)</span></p>
                         <p class="text-sm text-stone-600">Total Steps: <span id="step-count">0</span></p>
@@ -114,6 +118,8 @@
                     <div class="flex justify-center space-x-4">
                         <button id="reset-btn" class="px-6 py-2 bg-red-500 text-white font-bold rounded-lg shadow-md hover:bg-red-600 transition-colors" onclick="resetArray()">Reset</button>
                         <button id="step-btn" class="px-6 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-xl hover:bg-indigo-700 transition-colors" onclick="stepSort()">Step</button>
+                        <button id="play-btn" class="px-6 py-2 bg-green-600 text-white font-bold rounded-lg shadow-xl hover:bg-green-700 transition-colors" onclick="startAutoPlay()">Play</button>
+                        <button id="pause-btn" class="px-6 py-2 bg-yellow-600 text-white font-bold rounded-lg shadow-xl hover:bg-yellow-700 transition-colors hidden" onclick="stopAutoPlay()">Pause</button>
                     </div>
                     <p class="text-center mt-3 text-sm text-stone-600" id="current-action">Ready to begin.</p>
                 </div>
@@ -201,6 +207,7 @@
         let array = [];
         let arraySize = 10;
         let stepCount = 0;
+        let autoPlayInterval = null;
         let sortState = {};
         let isSorting = false;
 
@@ -208,27 +215,61 @@
             bubble: {
                 title: "Bubble Sort",
                 description: "Repeatedly steps through the list, compares adjacent elements, and swaps them if they are in the wrong order. The largest elements 'bubble up' to their correct position at the end of each pass. It's simple but highly inefficient.",
-                complexity: "O(n²)"
+                complexity: "O(n²)",
+                pseudocode: `1. Start an outer loop to track the sorted part, which grows from the right.
+2. Start an inner loop from the beginning of the unsorted part (left).
+3. **Compare** the current element with the element immediately next to it.
+4. If they are in the wrong order (current > next), **SWAP** them.
+5. Repeat steps 3-4 until the end of the unsorted section is reached. The largest element in that section is now at the correct, final position.
+6. The outer loop repeats, shrinking the unsorted section by one until the array is sorted.`
             },
             selection: {
                 title: "Selection Sort",
                 description: "Divides the list into a sorted and unsorted region. It repeatedly finds the smallest element in the unsorted region and swaps it with the leftmost unsorted element. It performs the minimum number of swaps.",
-                complexity: "O(n²)"
+                complexity: "O(n²)",
+                pseudocode: `1. Start an outer loop to iterate through the array from the left (i). This marks the current position we are trying to fill.
+2. Assume the element at position **i** is the minimum element (min_idx = i).
+3. Start an inner loop (j) to search every element from position **i+1** to the end of the array.
+4. If the element at **j** is smaller than the element at **min_idx**, update **min_idx = j**.
+5. After the inner loop finishes, **SWAP** the element at the current position **i** with the element at the final **min_idx**.
+6. The element at position **i** is now correctly sorted. The outer loop increments, and the process repeats.`
             },
             insertion: {
                 title: "Insertion Sort",
                 description: "Builds the final sorted array one item at a time. It iterates through the input elements and consumes one input element at a time, inserting it into its correct sorted position in the list being built. Highly efficient for nearly sorted data.",
-                complexity: "O(n²)"
+                complexity: "O(n²)",
+                pseudocode: `1. Start an outer loop from the second element (i=1), assuming the first element is already sorted.
+2. Store the current element **A[i]** as the **KEY** to be inserted.
+3. Start an inner loop (j) from the element to the left of the KEY (j = i-1).
+4. **While** the left element A[j] is greater than the **KEY**:
+    a. Shift A[j] one position to the right (A[j+1] = A[j]).
+    b. Move left: Decrement **j**.
+5. When the loop ends, insert the **KEY** into the correct, newly created spot (A[j+1] = KEY).
+6. Repeat until all elements have been inserted into their correct position.`
             },
             merge: {
                 title: "Merge Sort",
                 description: "A stable, divide-and-conquer algorithm. It recursively divides the list into halves until only single elements remain, then merges those halves back together in sorted order. Requires significant extra memory.",
-                complexity: "O(n log n)"
+                complexity: "O(n log n)",
+                pseudocode: `1. **Divide:** Recursively split the array in half until you have sub-arrays containing only one element. A single-element array is always considered sorted.
+2. **Conquer (Merge):** Combine the sub-arrays back into larger, sorted arrays.
+3. To merge two sorted lists (**Left** and **Right**):
+    a. Compare the first elements of the Left and Right lists.
+    b. Move the smaller element to a **Result** list and advance that list's pointer.
+    c. Repeat until one list is empty.
+    d. Append the remaining elements of the non-empty list to the Result list.
+4. Continue this merging process until only the final, completely sorted array remains.`
             },
             quick: {
                 title: "Quick Sort",
                 description: "An efficient, in-place, divide-and-conquer algorithm. It selects a 'pivot' element and partitions the array into two sub-arrays, according to whether elements are less than or greater than the pivot. It then recursively sorts the sub-arrays.",
-                complexity: "O(n log n) (Avg), O(n²) (Worst)"
+                complexity: "O(n log n) (Avg), O(n²) (Worst)",
+                pseudocode: `1. **Choose a PIVOT** element (e.g., the last element of the current section).
+2. **Partition:** Rearrange the array section so that all elements smaller than the pivot move to its left, and all elements larger move to its right. The pivot is now in its final sorted position.
+3. Get the final index of the pivot (**pivot_index**).
+4. **Recursively apply QuickSort** to the sub-array of elements to the **LEFT** of the pivot.
+5. **Recursively apply QuickSort** to the sub-array of elements to the **RIGHT** of the pivot.
+6. The process stops when a sub-array has zero or one element.`
             }
         };
 
@@ -263,7 +304,7 @@
             stepCount = 0;
             isSorting = true;
             document.getElementById('step-count').textContent = stepCount;
-            document.getElementById('current-action').textContent = "Click 'Step' to begin the sort.";
+            document.getElementById('current-action').textContent = "Click 'Step' or 'Play' to begin the sort.";
         }
 
         function updateVisualization() {
@@ -302,12 +343,14 @@
                 bar.classList.add(...color.split(' '));
                 container.appendChild(bar);
             });
-
+            
             if (sortState.isSorted) {
                 document.getElementById('current-action').textContent = "Array is fully sorted!";
                 document.getElementById('step-btn').disabled = true;
+                stopAutoPlay();
             } else {
-                 document.getElementById('step-btn').disabled = false;
+                 // Only allow stepping if not currently auto-playing
+                 document.getElementById('step-btn').disabled = autoPlayInterval !== null;
             }
         }
 
@@ -315,7 +358,37 @@
             [arr[a], arr[b]] = [arr[b], arr[a]];
         }
         
-        // --- Sorting Logic State Machine ---
+        // --- Auto-Play Functions ---
+
+        function startAutoPlay() {
+            if (sortState.isSorted) return;
+            document.getElementById('play-btn').classList.add('hidden');
+            document.getElementById('pause-btn').classList.remove('hidden');
+            document.getElementById('step-btn').disabled = true;
+
+            // Set a comfortable speed (300ms per step)
+            autoPlayInterval = setInterval(() => {
+                if (!sortState.isSorted) {
+                    stepSort();
+                } else {
+                    stopAutoPlay();
+                }
+            }, 300);
+        }
+
+        function stopAutoPlay() {
+            if (autoPlayInterval !== null) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = null;
+            }
+            document.getElementById('play-btn').classList.remove('hidden');
+            document.getElementById('pause-btn').classList.add('hidden');
+            if (!sortState.isSorted) {
+                document.getElementById('step-btn').disabled = false;
+            }
+        }
+
+        // --- Sorting Logic State Machine (Simplified for visualization) ---
 
         function bubbleSortStep() {
             const n = array.length;
@@ -419,6 +492,7 @@
                     break;
                 case 'merge':
                 case 'quick':
+                    // Note: These complex sorts are not visualized step-by-step
                     actionText = "Simulation for Merge/Quick is too complex for step-by-step. Refer to description and complexity chart.";
                     sortState.isSorted = true; 
                     break;
@@ -429,6 +503,7 @@
         }
 
         function resetArray() {
+            stopAutoPlay();
             initArray();
             updateVisualization();
             document.getElementById('step-btn').disabled = false;
@@ -440,6 +515,7 @@
             document.getElementById('alg-title').textContent = detail.title;
             document.getElementById('alg-description').textContent = detail.description;
             document.getElementById('alg-complexity').textContent = detail.complexity;
+            document.getElementById('alg-pseudocode').textContent = detail.pseudocode; // Display human-readable steps
             
             document.querySelectorAll('#explorer .tab-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -450,8 +526,16 @@
             resetArray();
 
             if (algName === 'merge' || algName === 'quick') {
+                // Disable Step, Play, and Pause buttons for non-visual sorts
                 document.getElementById('step-btn').disabled = true;
-                document.getElementById('current-action').textContent = "Step-by-step for complex sorts (Merge/Quick) is not supported here. Please see the complexity chart below.";
+                document.getElementById('play-btn').classList.add('hidden');
+                document.getElementById('pause-btn').classList.add('hidden');
+                document.getElementById('current-action').textContent = "Step-by-step and auto-play for complex sorts (Merge/Quick) are not supported here. Please see the complexity chart below.";
+            } else {
+                // Enable Step and Play for visual sorts
+                document.getElementById('step-btn').disabled = false;
+                document.getElementById('play-btn').classList.remove('hidden');
+                document.getElementById('pause-btn').classList.add('hidden');
             }
         }
 
